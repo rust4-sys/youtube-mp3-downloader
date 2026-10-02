@@ -95,6 +95,20 @@ def download_audio(task_id: str, url: str):
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['mediaconnect'],
+            },
+        },
+        'extractor_retries': 5,
+        'retries': 5,
+        'geo_bypass': True,
+        'socket_timeout': 30,
     }
 
     try:
@@ -136,9 +150,18 @@ def download_audio(task_id: str, url: str):
             })
 
     except yt_dlp.utils.DownloadError as e:
+        error_msg = str(e)
+        if 'Sign in' in error_msg or 'bot' in error_msg.lower():
+            friendly = 'يوتيوب يطلب تسجيل دخول. جرّب رابط فيديو ثاني.'
+        elif 'Private' in error_msg:
+            friendly = 'الفيديو خاص ولا يمكن تحميله.'
+        elif 'unavailable' in error_msg.lower():
+            friendly = 'الفيديو غير متاح أو محذوف.'
+        else:
+            friendly = f'فشل في تحميل الفيديو: {error_msg[:200]}'
         tasks[task_id].update({
             'status': 'error',
-            'error': 'فشل في تحميل الفيديو. تأكد من صحة الرابط.',
+            'error': friendly,
             'completed_at': time.time(),
         })
     except Exception as e:
